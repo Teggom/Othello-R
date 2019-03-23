@@ -1,3 +1,4 @@
+# Setup
 Board = matrix(rep(x = c(" "), times = 64), nrow=8, ncol=8)
 colnames(Board) = LETTERS[1:8]
 rownames(Board) = letters[1:8]
@@ -6,34 +7,41 @@ Board[5,4] = "B"
 Board[4,4] = "W"
 Board[5,5] = "W"
 
+Heuristic = matrix(rep(x=0,size=64),nrow=8)
 
-# setup
-Heuristic = matrix(rep(x = 10,size = 64),nrow = 8, ncol = 8)
-# Edges
-Heuristic[2:7,c(1,8)] = 3
-Heuristic[c(1,8),2:7] = 3
-# Middle
-Heuristic[2:7,2:7] = 1
-Heuristic[3:6,3:6] = .45
-Heuristic[4:5,4:5] = .2
-#Touchup
-Heuristic[c(1,1,2,2,7,7,8,8),c(2,7,1,8,1,8,2,7)] = .2
-Heuristic[c(2,2,7,7),c(2,7,2,7)] = 0
-#Counter
-Heuristic[c(1,1,8,8),c(1,8,1,8)] = 40
+# A weak heuristic function I defined by hand
+easyHeuristic <- function(){
+  # setup
+  Heuristic = matrix(rep(x = 10,size = 64),nrow = 8, ncol = 8)
+  # Edges
+  Heuristic[2:7,c(1,8)] = 3
+  Heuristic[c(1,8),2:7] = 3
+  # Middle
+  Heuristic[2:7,2:7] = 1
+  Heuristic[3:6,3:6] = .45
+  Heuristic[4:5,4:5] = .2
+  #Touchup
+  Heuristic[c(1,1,2,2,7,7,8,8),c(2,7,1,8,1,8,2,7)] = .2
+  Heuristic[c(2,2,7,7),c(2,7,2,7)] = 0
+  #Counter
+  Heuristic[c(1,1,8,8),c(1,8,1,8)] = 40
+}  
+  
+Heuristic <- easyHeuristic()
 
-
+# Given a board, heuristic, and color: calculate the best move
 GetBestMove = function(board,Color){
   Moves = getValidMoves(board,Color)
   Values = rep(x=0,length(Moves))
-  for(each in Moves){
-    print(each)
+  for(each in 1:length(Moves)){
+    #print(each)
     
-    Values[each] = CalculateHeuristicState(makeMove(Board,Color,each[1],each[2]),Color)
+    Values[each] = CalculateHeuristicState(makeMove(Board,Color,Moves[[each]][1],Moves[[each]][2]),Color)
   }
   return(Moves[which.max(Values)])
 }
 
+## Given a Heuristic, calcualate how optimal the current board is
 CalculateHeuristicState = function(Board,Color){
   GoodBoard = Board
   if(Color == "W"){
@@ -49,6 +57,7 @@ CalculateHeuristicState = function(Board,Color){
   return(sum(GoodBoard * Heuristic))
 }
 
+## Preferred way to print the board
 printBoard = function(board){
   cat("  \033[4m",LETTERS[1:8],"\033[24m\n", sep = " ")
   for(row in 1:8){
@@ -57,7 +66,7 @@ printBoard = function(board){
       if(board[row,col]==" "){
         cat("\033[4m |\033[24m")
       } else if(board[row,col]=="B"){
-        cat("\033[4m@|\033[24m")
+        cat("\033[4m\033[1m@\033[22m|\033[24m")
       } else {
         cat("\033[4mO|\033[24m")
       }
@@ -66,6 +75,7 @@ printBoard = function(board){
   }
 }
 
+## Returns a board with the updated move and tiles flipped. 
 makeMove = function(board, Color, row, col){
   print(Color)
   print(row)
@@ -181,6 +191,8 @@ makeMove = function(board, Color, row, col){
   return(board)  
 }
 
+## Returns a list of vectors with each vector being the c(row, col) 
+## of a valid move
 getValidMoves = function(board, Color){
   Combos = list()
   if(Color =="W"){
@@ -248,7 +260,7 @@ getValidMoves = function(board, Color){
         if(col>1 && row<8 && !isValid){
           if(board[row+1,col-1] == NotColor){
             offset = 2
-            while(col-offset<9 && row+offset>0 && board[row+offset, col-offset]!= " "){
+            while(col-offset>0 && row+offset<9 && board[row+offset, col-offset]!= " "){
               if(board[row+offset, col-offset]==Color){
                 isValid = T
               }
@@ -302,4 +314,31 @@ getValidMoves = function(board, Color){
     }
   }
   return(Combos)
+}
+
+## Returns a true or false value if the board is full
+# Easier to use and read than the return statement
+isBoardFull <- function(GameBoard){
+  return(!(" " %in% Board))
+}
+
+## Returns a true or false value if the specified player has valid moves
+# Redundant since you could just check if the list
+# returned from getValidMoves() has length(list)==0
+# This function is here to simply streamline that process
+hasValidMoves <- function(Board, Player){
+  return(length(getValidMoves(board = Board, Color = Player))!=0)
+}
+
+## Returns color of winning player
+## Returns "" in the event of a tie
+getWinner <- function(Board){
+  NumBlack = length(Board[Board=="B"])
+  if(NumBlack==32){
+    return("")
+  }
+  if(NumBlack < 32){
+    return("W")
+  } 
+  return("B")
 }
